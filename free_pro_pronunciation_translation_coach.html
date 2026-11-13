@@ -1,0 +1,1447 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>FREE PRO — AI Pronunciation & Translation Coach</title>
+    <!-- Tailwind CSS -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <!-- Lucide Icons -->
+    <script src="https://unpkg.com/lucide@latest"></script>
+    <!-- Google Fonts: Inter -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+    <style>
+        body {
+            font-family: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
+            background-color: #f8fafc;
+            color: #0f172a;
+        }
+        @keyframes pulse-ring {
+            0% { transform: scale(0.95); opacity: 0.75; }
+            70% { transform: scale(1.25); opacity: 0; }
+            100% { transform: scale(1.25); opacity: 0; }
+        }
+        .recording-ring::before {
+            content: '';
+            position: absolute;
+            inset: -6px;
+            border-radius: 9999px;
+            border: 3px solid #ef4444;
+            animation: pulse-ring 1.4s cubic-bezier(0.24, 0, 0.38, 1) infinite;
+        }
+        @keyframes soundbar {
+            0%, 100% { height: 6px; }
+            50% { height: 22px; }
+        }
+        .wave-bar {
+            width: 4px;
+            height: 6px;
+            border-radius: 9999px;
+            background-color: #4f46e5;
+            transition: height 0.15s ease;
+        }
+        .speaking .wave-bar:nth-child(1) { animation: soundbar 0.7s ease-in-out infinite 0.0s; }
+        .speaking .wave-bar:nth-child(2) { animation: soundbar 0.7s ease-in-out infinite 0.15s; }
+        .speaking .wave-bar:nth-child(3) { animation: soundbar 0.7s ease-in-out infinite 0.3s; }
+        .speaking .wave-bar:nth-child(4) { animation: soundbar 0.7s ease-in-out infinite 0.45s; }
+        .speaking .wave-bar:nth-child(5) { animation: soundbar 0.7s ease-in-out infinite 0.2s; }
+
+        .custom-scrollbar::-webkit-scrollbar { width: 6px; }
+        .custom-scrollbar::-webkit-scrollbar-track { background: transparent; }
+        .custom-scrollbar::-webkit-scrollbar-thumb { background: #cbd5e1; border-radius: 9999px; }
+        .custom-scrollbar::-webkit-scrollbar-thumb:hover { background: #94a3b8; }
+    </style>
+</head>
+<body class="min-h-screen flex flex-col antialiased selection:bg-indigo-100 selection:text-indigo-800">
+
+    <!-- Slide-out Navigation Drawer Backdrop -->
+    <div id="drawer-backdrop" onclick="closeDrawer()" class="fixed inset-0 bg-slate-900/40 backdrop-blur-xs z-40 hidden transition-opacity opacity-0"></div>
+
+    <!-- Left Navigation Drawer (Three Horizontal Lines Menu) -->
+    <aside id="nav-drawer" class="fixed top-0 left-0 bottom-0 w-72 max-w-[82vw] bg-white border-r border-slate-200 shadow-2xl z-50 transform -translate-x-full transition-transform duration-300 ease-out flex flex-col">
+        <div class="p-5 border-b border-slate-100 flex items-center justify-between">
+            <div class="flex items-center gap-2.5">
+                <div class="w-9 h-9 rounded-xl bg-gradient-to-br from-indigo-600 to-violet-600 flex items-center justify-center text-white shadow-sm">
+                    <i data-lucide="mic" class="w-5 h-5"></i>
+                </div>
+                <div>
+                    <span class="text-base font-extrabold tracking-tight text-slate-900 block leading-none">FREE PRO</span>
+                    <span class="text-[11px] font-medium text-slate-400">AI Speech & Translation</span>
+                </div>
+            </div>
+            <button onclick="closeDrawer()" aria-label="Close menu" class="p-2 rounded-xl text-slate-400 hover:text-slate-700 hover:bg-slate-100 transition">
+                <i data-lucide="x" class="w-5 h-5"></i>
+            </button>
+        </div>
+
+        <nav class="p-4 flex-1 space-y-1.5 overflow-y-auto">
+            <p class="px-3 text-[11px] font-bold uppercase tracking-wider text-slate-400 mb-2">Navigation</p>
+
+            <button onclick="closeDrawer(); window.scrollTo({top: 0, behavior: 'smooth'});" class="w-full flex items-center gap-3 px-3.5 py-3 rounded-xl text-sm font-semibold text-slate-700 hover:bg-indigo-50 hover:text-indigo-700 transition text-left">
+                <i data-lucide="languages" class="w-4 h-4 text-indigo-600"></i>
+                <span>Translator & Studio</span>
+            </button>
+
+            <button onclick="closeDrawer(); document.getElementById('history-section')?.scrollIntoView({behavior: 'smooth'});" class="w-full flex items-center gap-3 px-3.5 py-3 rounded-xl text-sm font-semibold text-slate-700 hover:bg-indigo-50 hover:text-indigo-700 transition text-left">
+                <i data-lucide="bookmark" class="w-4 h-4 text-indigo-600"></i>
+                <span>My Saved Phrases</span>
+            </button>
+
+            <div class="my-3 border-t border-slate-100"></div>
+            <p class="px-3 text-[11px] font-bold uppercase tracking-wider text-slate-400 mb-2">Configuration</p>
+
+            <!-- Settings Option -->
+            <button onclick="closeDrawer(); openSettingsModal();" class="w-full flex items-center justify-between px-3.5 py-3 rounded-xl text-sm font-semibold bg-slate-900 text-white hover:bg-slate-800 shadow-sm transition text-left">
+                <span class="flex items-center gap-3">
+                    <i data-lucide="settings" class="w-4 h-4 text-indigo-400"></i>
+                    <span>Settings (Google API Key)</span>
+                </span>
+                <span id="drawer-key-dot" class="w-2.5 h-2.5 rounded-full bg-amber-400"></span>
+            </button>
+
+            <button onclick="closeDrawer(); clearHistoryPrompt();" class="w-full flex items-center gap-3 px-3.5 py-3 rounded-xl text-sm font-medium text-rose-600 hover:bg-rose-50 transition text-left mt-1">
+                <i data-lucide="trash-2" class="w-4 h-4"></i>
+                <span>Clear Practice History</span>
+            </button>
+        </nav>
+
+        <div class="p-4 border-t border-slate-100 bg-slate-50/70">
+            <div class="flex items-center justify-between text-xs text-slate-500">
+                <span>Vault Status</span>
+                <span id="drawer-vault-label" class="font-semibold text-slate-700">Not Connected</span>
+            </div>
+        </div>
+    </aside>
+
+    <!-- Settings Modal for Google API Key -->
+    <div id="settings-modal" class="fixed inset-0 z-50 hidden flex items-center justify-center p-4 bg-slate-900/50 backdrop-blur-xs">
+        <div class="bg-white w-full max-w-md rounded-3xl border border-slate-200 shadow-2xl overflow-hidden transform transition-all">
+            <div class="px-6 py-5 border-b border-slate-100 flex items-center justify-between bg-slate-50/70">
+                <div class="flex items-center gap-2.5">
+                    <div class="w-9 h-9 rounded-xl bg-indigo-100 text-indigo-600 flex items-center justify-center">
+                        <i data-lucide="key-round" class="w-5 h-5"></i>
+                    </div>
+                    <div>
+                        <h3 class="text-base font-bold text-slate-900">Google API Key Settings</h3>
+                        <p class="text-xs text-slate-500">Required to power FREE PRO AI & personal vault</p>
+                    </div>
+                </div>
+                <button onclick="closeSettingsModal()" aria-label="Close settings" class="p-2 rounded-xl text-slate-400 hover:text-slate-700 hover:bg-slate-200/60 transition">
+                    <i data-lucide="x" class="w-5 h-5"></i>
+                </button>
+            </div>
+
+            <div class="p-6 space-y-4">
+                <div class="p-3.5 rounded-2xl bg-indigo-50/80 border border-indigo-100 text-xs text-indigo-900 leading-relaxed">
+                    <strong>How it works:</strong> Enter your Google Gemini API key below. All translations, phonetic breakdowns, and saved phrases are isolated inside a dedicated storage vault tied directly to your API key.
+                </div>
+
+                <div>
+                    <label for="google-api-key-input" class="block text-xs font-bold uppercase tracking-wider text-slate-500 mb-1.5">
+                        Google Gemini API Key
+                    </label>
+                    <div class="relative flex items-center">
+                        <input
+                            type="password"
+                            id="google-api-key-input"
+                            placeholder="AIzaSy..."
+                            autocomplete="off"
+                            class="w-full pl-4 pr-11 py-3 rounded-xl border border-slate-200 bg-slate-50/60 text-sm font-mono text-slate-800 focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:bg-white transition"
+                        />
+                        <button type="button" onclick="toggleApiKeyVisibility()" aria-label="Toggle visibility" class="absolute right-3 p-1.5 text-slate-400 hover:text-slate-700">
+                            <i id="api-key-eye-icon" data-lucide="eye" class="w-4 h-4"></i>
+                        </button>
+                    </div>
+                    <p id="api-key-verification-status" class="hidden mt-2 text-xs font-medium"></p>
+                </div>
+
+                <div class="flex flex-wrap items-center justify-between gap-2 pt-2">
+                    <a href="https://aistudio.google.com/app/apikey" target="_blank" rel="noopener noreferrer" class="text-xs font-semibold text-indigo-600 hover:text-indigo-800 inline-flex items-center gap-1">
+                        <span>Get a free Google API key</span>
+                        <i data-lucide="external-link" class="w-3.5 h-3.5"></i>
+                    </a>
+
+                    <button id="disconnect-key-btn" type="button" onclick="removeGoogleApiKey()" class="hidden text-xs font-semibold text-rose-600 hover:text-rose-800 px-2.5 py-1.5 rounded-lg hover:bg-rose-50 transition">
+                        Disconnect Key
+                    </button>
+                </div>
+            </div>
+
+            <div class="px-6 py-4 bg-slate-50 border-t border-slate-100 flex items-center justify-end gap-2.5">
+                <button type="button" onclick="closeSettingsModal()" class="px-4 py-2.5 rounded-xl text-sm font-semibold text-slate-600 hover:bg-slate-200/70 transition">
+                    Cancel
+                </button>
+                <button id="verify-key-btn" type="button" onclick="verifyAndSaveApiKey()" class="inline-flex items-center gap-2 px-5 py-2.5 rounded-xl bg-indigo-600 hover:bg-indigo-700 text-white text-sm font-semibold shadow-sm transition">
+                    <i data-lucide="check-circle-2" class="w-4 h-4"></i>
+                    <span>Verify & Save Key</span>
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Top Navigation Header -->
+    <header class="sticky top-0 z-30 bg-white/90 backdrop-blur-md border-b border-slate-200/80">
+        <div class="max-w-6xl mx-auto px-4 sm:px-6 h-16 flex items-center justify-between gap-3">
+            <div class="flex items-center gap-3">
+                <!-- Three Horizontal Lines (Hamburger) Button -->
+                <button onclick="openDrawer()" aria-label="Open menu" class="p-2.5 rounded-xl border border-slate-200 bg-white hover:bg-slate-100 text-slate-700 transition active:scale-95">
+                    <svg class="w-5 h-5" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round">
+                        <line x1="3" y1="6" x2="21" y2="6"></line>
+                        <line x1="3" y1="12" x2="21" y2="12"></line>
+                        <line x1="3" y1="18" x2="21" y2="18"></line>
+                    </svg>
+                </button>
+
+                <!-- Brand Logo: FREE PRO -->
+                <div class="flex items-center gap-2.5">
+                    <div class="w-9 h-9 rounded-xl bg-gradient-to-br from-indigo-600 to-violet-600 flex items-center justify-center text-white shadow-sm">
+                        <i data-lucide="mic" class="w-5 h-5"></i>
+                    </div>
+                    <div>
+                        <div class="flex items-center gap-1.5">
+                            <span class="text-lg font-extrabold tracking-tight text-slate-900">FREE PRO</span>
+                            <span class="px-1.5 py-0.5 text-[10px] font-bold uppercase tracking-wider rounded-md bg-indigo-100 text-indigo-700">AI</span>
+                        </div>
+                        <p class="text-[11px] text-slate-500 hidden sm:block leading-none">Pronunciation & Translation Coach</p>
+                    </div>
+                </div>
+            </div>
+
+            <!-- API Key Status Pill + Quick Settings Trigger -->
+            <div class="flex items-center gap-2">
+                <button onclick="openSettingsModal()" id="header-api-status-btn" class="inline-flex items-center gap-2 px-3.5 py-2 rounded-xl border border-amber-200 bg-amber-50 hover:bg-amber-100 text-amber-800 text-xs font-semibold transition">
+                    <span id="header-status-dot" class="w-2 h-2 rounded-full bg-amber-500"></span>
+                    <span id="header-status-text">Connect API Key</span>
+                    <i data-lucide="settings" class="w-3.5 h-3.5 opacity-75"></i>
+                </button>
+            </div>
+        </div>
+    </header>
+
+    <!-- Main Workspace -->
+    <main class="flex-1 max-w-6xl w-full mx-auto px-4 sm:px-6 py-6 sm:py-8">
+        <div class="grid grid-cols-1 lg:grid-cols-12 gap-6 items-start">
+
+            <!-- Left Column: Translation Input & Pronunciation Studio (8 cols) -->
+            <div class="lg:col-span-8 space-y-6">
+
+                <!-- Card 1: Dual-Language Translator -->
+                <section class="bg-white rounded-3xl border border-slate-200/90 shadow-sm p-5 sm:p-6">
+                    <div class="flex flex-wrap items-center justify-between gap-3 mb-4">
+                        <div class="flex items-center gap-2">
+                            <span class="w-7 h-7 rounded-lg bg-indigo-50 text-indigo-600 flex items-center justify-center">
+                                <i data-lucide="languages" class="w-4 h-4"></i>
+                            </span>
+                            <h2 class="text-base font-bold text-slate-900">1. Translate & Generate Guide</h2>
+                        </div>
+
+                        <!-- Language Selectors -->
+                        <div class="flex items-center gap-2 w-full sm:w-auto">
+                            <select id="native-lang-select" onchange="handleLanguageChange()" aria-label="Your language" class="flex-1 sm:flex-initial px-3 py-2 rounded-xl border border-slate-200 bg-slate-50 text-xs sm:text-sm font-semibold text-slate-700 focus:outline-none focus:ring-2 focus:ring-indigo-500">
+                            </select>
+
+                            <button type="button" onclick="swapLanguages()" title="Swap languages" aria-label="Swap languages" class="p-2 rounded-xl border border-slate-200 bg-white hover:bg-slate-100 text-slate-600 transition active:scale-95">
+                                <i data-lucide="arrow-left-right" class="w-4 h-4"></i>
+                            </button>
+
+                            <select id="target-lang-select" onchange="handleLanguageChange()" aria-label="Target language" class="flex-1 sm:flex-initial px-3 py-2 rounded-xl border border-indigo-200 bg-indigo-50/70 text-xs sm:text-sm font-semibold text-indigo-800 focus:outline-none focus:ring-2 focus:ring-indigo-500">
+                            </select>
+                        </div>
+                    </div>
+
+                    <!-- Text Input Area -->
+                    <div class="relative">
+                        <textarea
+                            id="source-input"
+                            rows="2"
+                            placeholder="Type any word or phrase to translate and practice..."
+                            onkeydown="if(event.key === 'Enter' && !event.shiftKey){ event.preventDefault(); handleTranslateAndLoad(); }"
+                            class="w-full p-4 rounded-2xl border border-slate-200 bg-slate-50/60 text-slate-900 placeholder-slate-400 text-base focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:bg-white transition resize-none"
+                        ></textarea>
+                    </div>
+
+                    <!-- Quick Sample Phrases + Translate Action -->
+                    <div class="mt-4 flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+                        <div class="flex items-center gap-1.5 flex-wrap" id="sample-pills-container">
+                            <span class="text-[11px] font-semibold text-slate-400 mr-1">Try:</span>
+                        </div>
+
+                        <button id="translate-btn" type="button" onclick="handleTranslateAndLoad()" class="inline-flex items-center justify-center gap-2 px-5 py-3 rounded-xl bg-indigo-600 hover:bg-indigo-700 text-white text-sm font-semibold shadow-sm transition active:scale-[0.99] shrink-0">
+                            <i data-lucide="sparkles" class="w-4 h-4"></i>
+                            <span>Translate & Practice</span>
+                        </button>
+                    </div>
+                </section>
+
+                <!-- Card 2: Pronunciation Practice Studio -->
+                <section class="bg-white rounded-3xl border border-slate-200/90 shadow-sm p-5 sm:p-7 relative overflow-hidden">
+                    <div class="flex flex-wrap items-center justify-between gap-3 mb-5">
+                        <div class="flex items-center gap-2">
+                            <span class="w-7 h-7 rounded-lg bg-violet-50 text-violet-600 flex items-center justify-center">
+                                <i data-lucide="volume-2" class="w-4 h-4"></i>
+                            </span>
+                            <h2 class="text-base font-bold text-slate-900">2. Pronunciation Studio</h2>
+                            <span id="studio-target-badge" class="px-2.5 py-0.5 rounded-full text-xs font-semibold bg-indigo-50 text-indigo-700">Spanish</span>
+                        </div>
+
+                        <div class="flex items-center gap-2">
+                            <!-- Speed Controls -->
+                            <div class="inline-flex rounded-xl bg-slate-100 p-1 text-xs font-semibold">
+                                <button type="button" data-rate="0.65" onclick="setPlaybackRate(0.65)" class="rate-btn px-2.5 py-1 rounded-lg text-slate-600 transition">0.65x</button>
+                                <button type="button" data-rate="0.85" onclick="setPlaybackRate(0.85)" class="rate-btn px-2.5 py-1 rounded-lg bg-white text-indigo-700 shadow-xs transition">0.85x</button>
+                                <button type="button" data-rate="1.0" onclick="setPlaybackRate(1.0)" class="rate-btn px-2.5 py-1 rounded-lg text-slate-600 transition">1.0x</button>
+                            </div>
+
+                            <!-- Save Phrase Button -->
+                            <button type="button" onclick="saveCurrentPhraseManually()" title="Save phrase to your API key vault" class="p-2.5 rounded-xl border border-slate-200 hover:bg-amber-50 hover:border-amber-200 text-slate-500 hover:text-amber-600 transition">
+                                <i data-lucide="bookmark-plus" class="w-4 h-4"></i>
+                            </button>
+                        </div>
+                    </div>
+
+                    <!-- Target Phrase Display -->
+                    <div class="rounded-2xl bg-gradient-to-br from-slate-50 to-indigo-50/40 border border-slate-200/80 p-5 sm:p-6 text-center">
+                        <p id="studio-target-text" class="text-2xl sm:text-3xl font-extrabold text-slate-900 tracking-tight leading-snug">
+                            Buenos días, ¿cómo estás?
+                        </p>
+                        <p id="studio-phonetic-text" class="mt-2 text-sm sm:text-base font-mono text-indigo-600 font-medium">
+                            /BWEH-nohs DEE-ahs, KOH-moh ehs-TAHS/
+                        </p>
+                        <p id="studio-native-text" class="mt-2 text-xs sm:text-sm text-slate-500">
+                            "Good morning, how are you?"
+                        </p>
+
+                        <!-- Coaching Tip Pill -->
+                        <div class="mt-4 inline-flex items-center gap-2 px-3.5 py-1.5 rounded-full bg-white border border-slate-200/80 text-xs text-slate-600 shadow-2xs">
+                            <i data-lucide="lightbulb" class="w-3.5 h-3.5 text-amber-500 shrink-0"></i>
+                            <span id="studio-tip-text">Keep vowel sounds crisp and pure without gliding.</span>
+                        </div>
+                    </div>
+
+                    <!-- Audio & Microphone Action Controls -->
+                    <div class="mt-6 flex flex-col sm:flex-row items-center justify-center gap-4">
+                        <!-- Listen Button -->
+                        <button id="listen-btn" type="button" onclick="speakTargetPhrase()" class="w-full sm:w-auto inline-flex items-center justify-center gap-3 px-6 py-3.5 rounded-2xl bg-slate-900 hover:bg-slate-800 text-white font-semibold text-sm shadow-sm transition active:scale-[0.99]">
+                            <i data-lucide="volume-2" class="w-5 h-5 text-indigo-400"></i>
+                            <span>Listen Native Audio</span>
+                            <div id="sound-wave" class="flex items-center gap-1 h-5 ml-1">
+                                <span class="wave-bar"></span>
+                                <span class="wave-bar"></span>
+                                <span class="wave-bar"></span>
+                                <span class="wave-bar"></span>
+                                <span class="wave-bar"></span>
+                            </div>
+                        </button>
+
+                        <!-- Practice Speaking Button -->
+                        <button id="record-btn" type="button" onclick="toggleRecording()" class="relative w-full sm:w-auto inline-flex items-center justify-center gap-3 px-6 py-3.5 rounded-2xl bg-indigo-600 hover:bg-indigo-700 text-white font-semibold text-sm shadow-sm transition active:scale-[0.99]">
+                            <i id="record-icon" data-lucide="mic" class="w-5 h-5"></i>
+                            <span id="record-btn-label">Practice Speaking</span>
+                        </button>
+                    </div>
+
+                    <p id="recording-live-status" class="hidden mt-3 text-center text-xs font-semibold text-rose-600 animate-pulse">
+                        Listening... Speak the phrase clearly now, then click Stop.
+                    </p>
+
+                    <!-- Pronunciation Feedback Panel -->
+                    <div id="feedback-panel" class="hidden mt-6 pt-6 border-t border-slate-200/80 space-y-4">
+                        <div class="flex flex-wrap items-center justify-between gap-3">
+                            <div>
+                                <span class="text-xs font-bold uppercase tracking-wider text-slate-400">Accuracy Score</span>
+                                <div class="flex items-baseline gap-2 mt-0.5">
+                                    <span id="feedback-score-value" class="text-3xl font-extrabold text-emerald-600">92%</span>
+                                    <span id="feedback-score-label" class="text-xs font-semibold px-2 py-0.5 rounded-full bg-emerald-50 text-emerald-700">Great Job!</span>
+                                </div>
+                            </div>
+                            <div class="text-right">
+                                <span class="text-xs font-bold uppercase tracking-wider text-slate-400">You Said</span>
+                                <p id="feedback-transcript" class="text-sm font-medium text-slate-700 italic mt-0.5">"..."</p>
+                            </div>
+                        </div>
+
+                        <!-- Word-by-Word Breakdown -->
+                        <div>
+                            <p class="text-xs font-bold uppercase tracking-wider text-slate-400 mb-2">Word-by-Word Analysis</p>
+                            <div id="feedback-words-container" class="flex flex-wrap gap-2"></div>
+                        </div>
+
+                        <!-- AI Coach Note -->
+                        <div class="p-3.5 rounded-2xl bg-indigo-50/70 border border-indigo-100 flex items-start gap-2.5 text-xs text-indigo-950">
+                            <i data-lucide="sparkles" class="w-4 h-4 text-indigo-600 shrink-0 mt-0.5"></i>
+                            <p id="feedback-ai-advice" class="leading-relaxed"></p>
+                        </div>
+                    </div>
+                </section>
+
+                <!-- Card 3: Reading & Word Highlight Practice Pad -->
+                <section class="bg-white rounded-3xl border border-slate-200/90 shadow-sm p-5 sm:p-6">
+                    <div class="flex flex-wrap items-center justify-between gap-2 mb-3">
+                        <div class="flex items-center gap-2">
+                            <span class="w-7 h-7 rounded-lg bg-emerald-50 text-emerald-600 flex items-center justify-center">
+                                <i data-lucide="highlighter" class="w-4 h-4"></i>
+                            </span>
+                            <div>
+                                <h2 class="text-base font-bold text-slate-900 leading-tight">3. Smart Highlight Reader</h2>
+                                <p class="text-[11px] text-slate-500">Select or highlight any word below (or anywhere on the page) for instant English, Hindi & Bengali meaning</p>
+                            </div>
+                        </div>
+                        <span class="px-2.5 py-1 rounded-full text-[11px] font-semibold bg-emerald-50 text-emerald-700 border border-emerald-200/70">
+                            Highlight-to-Translate Active
+                        </span>
+                    </div>
+
+                    <div id="highlight-reader-box" class="p-4 rounded-2xl bg-slate-50/80 border border-slate-200/80 text-sm sm:text-base text-slate-700 leading-relaxed select-text">
+                        Learning a new language becomes effortless when you explore authentic expressions, curiosity, perseverance, and everyday conversations. Highlight any word here or in the studio above to see its instant <strong class="text-slate-900">English</strong>, <strong class="text-slate-900">Hindi (हिन्दी)</strong>, and <strong class="text-slate-900">Bengali (বাংলা)</strong> meanings.
+                    </div>
+                </section>
+            </div>
+
+            <!-- Right Column: Per-API-Key Saved Vault & History (4 cols) -->
+            <aside id="history-section" class="lg:col-span-4 bg-white rounded-3xl border border-slate-200/90 shadow-sm p-5 sm:p-6">
+                <div class="flex items-center justify-between mb-4">
+                    <div class="flex items-center gap-2">
+                        <span class="w-7 h-7 rounded-lg bg-amber-50 text-amber-600 flex items-center justify-center">
+                            <i data-lucide="bookmark" class="w-4 h-4"></i>
+                        </span>
+                        <div>
+                            <h2 class="text-base font-bold text-slate-900 leading-tight">Saved Vault</h2>
+                            <p class="text-[11px] text-slate-400">Stored per Google API Key</p>
+                        </div>
+                    </div>
+                    <span id="history-count-badge" class="px-2.5 py-1 rounded-full text-xs font-bold bg-slate-100 text-slate-600">0</span>
+                </div>
+
+                <div id="history-list" class="space-y-2.5 max-h-[520px] overflow-y-auto custom-scrollbar pr-1">
+                    <!-- Populated dynamically -->
+                </div>
+            </aside>
+        </div>
+    </main>
+
+    <!-- Toast Notification Container -->
+    <div id="toast-container" class="fixed bottom-5 right-5 z-50 flex flex-col gap-2 max-w-sm w-[calc(100%-2.5rem)] pointer-events-none"></div>
+
+    <!-- Chrome-Extension Style Floating Selection Popover (English, Hindi & Bengali) -->
+    <div id="floating-selection-popover" class="hidden fixed z-50 w-80 max-w-[92vw] bg-white/95 backdrop-blur-md rounded-2xl border border-slate-200 shadow-2xl p-4 transition-all duration-150">
+        <div class="flex items-start justify-between gap-2 pb-2.5 border-b border-slate-100">
+            <div class="min-w-0">
+                <div class="flex items-center gap-1.5">
+                    <span class="px-1.5 py-0.5 rounded bg-indigo-600 text-white text-[9px] font-extrabold uppercase tracking-wider">FREE PRO</span>
+                    <span class="text-[10px] font-semibold text-slate-400">Instant Lookup</span>
+                </div>
+                <p id="float-selected-word" class="mt-1 text-sm font-extrabold text-slate-900 truncate">Word</p>
+                <p id="float-phonetic" class="text-[11px] font-mono text-indigo-600 truncate"></p>
+            </div>
+            <div class="flex items-center gap-1 shrink-0">
+                <button type="button" onclick="speakFloatingWord()" title="Pronounce word" class="p-1.5 rounded-lg bg-slate-100 hover:bg-indigo-100 text-slate-700 hover:text-indigo-700 transition">
+                    <i data-lucide="volume-2" class="w-3.5 h-3.5"></i>
+                </button>
+                <button type="button" onclick="hideFloatingPopover()" title="Close" class="p-1.5 rounded-lg text-slate-400 hover:text-slate-700 hover:bg-slate-100 transition">
+                    <i data-lucide="x" class="w-3.5 h-3.5"></i>
+                </button>
+            </div>
+        </div>
+
+        <div id="float-loading-state" class="py-4 text-center text-xs font-medium text-indigo-600 hidden">
+            Translating into English, Hindi & Bengali...
+        </div>
+
+        <div id="float-meanings-container" class="mt-2.5 space-y-2 text-xs">
+            <!-- English Meaning -->
+            <div class="p-2 rounded-xl bg-slate-50 border border-slate-100">
+                <span class="text-[10px] font-bold uppercase tracking-wider text-slate-400 block">🇺🇸 English Meaning</span>
+                <p id="float-meaning-en" class="font-semibold text-slate-800 mt-0.5 leading-snug">—</p>
+            </div>
+
+            <!-- Hindi Meaning -->
+            <div class="p-2 rounded-xl bg-amber-50/60 border border-amber-100">
+                <span class="text-[10px] font-bold uppercase tracking-wider text-amber-700 block">🇮🇳 Hindi (हिन्दी)</span>
+                <p id="float-meaning-hi" class="font-semibold text-slate-900 mt-0.5 leading-snug">—</p>
+            </div>
+
+            <!-- Bengali Meaning -->
+            <div class="p-2 rounded-xl bg-emerald-50/60 border border-emerald-100">
+                <span class="text-[10px] font-bold uppercase tracking-wider text-emerald-700 block">🇧🇩 Bengali (বাংলা)</span>
+                <p id="float-meaning-bn" class="font-semibold text-slate-900 mt-0.5 leading-snug">—</p>
+            </div>
+        </div>
+
+        <div class="mt-3 pt-2.5 border-t border-slate-100 flex items-center justify-between gap-2">
+            <button type="button" onclick="loadFloatingWordIntoStudio()" class="w-full inline-flex items-center justify-center gap-1.5 px-3 py-2 rounded-xl bg-indigo-600 hover:bg-indigo-700 text-white text-xs font-semibold shadow-xs transition">
+                <i data-lucide="mic" class="w-3.5 h-3.5"></i>
+                <span>Practice in Studio</span>
+            </button>
+        </div>
+    </div>
+
+    <!-- Footer -->
+    <footer class="border-t border-slate-200/80 bg-white py-4 px-4 text-center text-xs text-slate-400">
+        FREE PRO • Direct Google Gemini API Pronunciation & Translation Studio
+    </footer>
+
+    <script>
+        /**
+         * ============================================================================
+         * 1. CONFIGURATION, CONSTANTS & STATE
+         * ============================================================================
+         */
+        const API_KEY_STORAGE_KEY = 'free_pro_google_api_key';
+
+        const LANGUAGES = [
+            { code: 'en-US', name: 'English', flag: '🇺🇸' },
+            { code: 'hi-IN', name: 'Hindi', flag: '🇮🇳' },
+            { code: 'bn-IN', name: 'Bengali', flag: '🇧🇩' },
+            { code: 'es-ES', name: 'Spanish', flag: '🇪🇸' },
+            { code: 'fr-FR', name: 'French', flag: '🇫🇷' },
+            { code: 'de-DE', name: 'German', flag: '🇩🇪' },
+            { code: 'it-IT', name: 'Italian', flag: '🇮🇹' },
+            { code: 'pt-BR', name: 'Portuguese', flag: '🇧🇷' },
+            { code: 'ja-JP', name: 'Japanese', flag: '🇯🇵' },
+            { code: 'ko-KR', name: 'Korean', flag: '🇰🇷' },
+            { code: 'zh-CN', name: 'Mandarin', flag: '🇨🇳' }
+        ];
+
+        const SAMPLE_PHRASES = [
+            { label: 'Greeting', text: 'Good morning, how are you?' },
+            { label: 'Coffee Order', text: 'I would like a cup of coffee, please.' },
+            { label: 'Directions', text: 'Excuse me, where is the nearest train station?' },
+            { label: 'Thank You', text: 'Thank you very much for your help!' }
+        ];
+
+        const state = {
+            apiKey: localStorage.getItem(API_KEY_STORAGE_KEY) || '',
+            nativeLang: 'en-US',
+            targetLang: 'es-ES',
+            playbackRate: 0.85,
+            isRecording: false,
+            recognition: null,
+            floatingWord: '',
+            floatingCache: {},
+            currentPhrase: {
+                targetText: 'Buenos días, ¿cómo estás?',
+                nativeText: 'Good morning, how are you?',
+                phonetic: '/BWEH-nohs DEE-ahs, KOH-moh ehs-TAHS/',
+                tip: 'Keep vowel sounds crisp and pure without gliding.',
+                lang: 'es-ES'
+            },
+            history: []
+        };
+
+        /**
+         * ============================================================================
+         * 2. PER-API-KEY ISOLATED STORAGE VAULT
+         * ============================================================================
+         */
+        function getApiKeyVaultId(keyStr = state.apiKey) {
+            if (!keyStr) return null;
+            let hash = 0;
+            for (let i = 0; i < keyStr.length; i++) {
+                hash = ((hash << 5) - hash) + keyStr.charCodeAt(i);
+                hash |= 0;
+            }
+            return `free_pro_user_vault_${Math.abs(hash).toString(36)}`;
+        }
+
+        function saveUserVaultForActiveKey() {
+            const vaultId = getApiKeyVaultId();
+            if (!vaultId) return;
+            const payload = {
+                nativeLang: state.nativeLang,
+                targetLang: state.targetLang,
+                playbackRate: state.playbackRate,
+                currentPhrase: state.currentPhrase,
+                history: state.history
+            };
+            try {
+                localStorage.setItem(vaultId, JSON.stringify(payload));
+            } catch (err) {
+                console.warn('Could not persist vault:', err);
+            }
+        }
+
+        function loadUserVaultForActiveKey() {
+            const vaultId = getApiKeyVaultId();
+            if (!vaultId) {
+                state.history = [];
+                return;
+            }
+            try {
+                const raw = localStorage.getItem(vaultId);
+                if (!raw) {
+                    state.history = [];
+                    return;
+                }
+                const parsed = JSON.parse(raw);
+                if (parsed.nativeLang) state.nativeLang = parsed.nativeLang;
+                if (parsed.targetLang) state.targetLang = parsed.targetLang;
+                if (parsed.playbackRate) state.playbackRate = parsed.playbackRate;
+                if (parsed.currentPhrase) state.currentPhrase = parsed.currentPhrase;
+                state.history = Array.isArray(parsed.history) ? parsed.history : [];
+            } catch (err) {
+                console.warn('Error loading API key vault:', err);
+                state.history = [];
+            }
+        }
+
+        /**
+         * ============================================================================
+         * 3. API KEY GATING, DRAWER & SETTINGS MODAL
+         * ============================================================================
+         */
+        function ensureApiKeyConfigured() {
+            if (state.apiKey && state.apiKey.trim().length >= 15) {
+                return true;
+            }
+            showToast('First connect API key in Settings to use FREE PRO.', 'error');
+            openSettingsModal();
+            return false;
+        }
+
+        function updateApiKeyUIState() {
+            const hasKey = Boolean(state.apiKey && state.apiKey.trim().length >= 15);
+            const statusBtn = document.getElementById('header-api-status-btn');
+            const statusDot = document.getElementById('header-status-dot');
+            const statusText = document.getElementById('header-status-text');
+            const drawerDot = document.getElementById('drawer-key-dot');
+            const drawerVaultLabel = document.getElementById('drawer-vault-label');
+            const disconnectBtn = document.getElementById('disconnect-key-btn');
+
+            if (hasKey) {
+                const masked = `${state.apiKey.slice(0, 6)}...${state.apiKey.slice(-4)}`;
+                statusBtn.className = 'inline-flex items-center gap-2 px-3.5 py-2 rounded-xl border border-emerald-200 bg-emerald-50 hover:bg-emerald-100 text-emerald-800 text-xs font-semibold transition';
+                statusDot.className = 'w-2 h-2 rounded-full bg-emerald-500';
+                statusText.textContent = `Connected (${masked})`;
+                if (drawerDot) drawerDot.className = 'w-2.5 h-2.5 rounded-full bg-emerald-400';
+                if (drawerVaultLabel) drawerVaultLabel.textContent = `Active (${masked})`;
+                if (disconnectBtn) disconnectBtn.classList.remove('hidden');
+            } else {
+                statusBtn.className = 'inline-flex items-center gap-2 px-3.5 py-2 rounded-xl border border-amber-200 bg-amber-50 hover:bg-amber-100 text-amber-800 text-xs font-semibold transition';
+                statusDot.className = 'w-2 h-2 rounded-full bg-amber-500';
+                statusText.textContent = 'Connect API Key';
+                if (drawerDot) drawerDot.className = 'w-2.5 h-2.5 rounded-full bg-amber-400';
+                if (drawerVaultLabel) drawerVaultLabel.textContent = 'Not Connected';
+                if (disconnectBtn) disconnectBtn.classList.add('hidden');
+            }
+        }
+
+        function openDrawer() {
+            const drawer = document.getElementById('nav-drawer');
+            const backdrop = document.getElementById('drawer-backdrop');
+            if (!drawer || !backdrop) return;
+            backdrop.classList.remove('hidden');
+            requestAnimationFrame(() => {
+                backdrop.classList.remove('opacity-0');
+                drawer.classList.remove('-translate-x-full');
+            });
+        }
+
+        function closeDrawer() {
+            const drawer = document.getElementById('nav-drawer');
+            const backdrop = document.getElementById('drawer-backdrop');
+            if (!drawer || !backdrop) return;
+            backdrop.classList.add('opacity-0');
+            drawer.classList.add('-translate-x-full');
+            setTimeout(() => backdrop.classList.add('hidden'), 280);
+        }
+
+        function openSettingsModal() {
+            const modal = document.getElementById('settings-modal');
+            const input = document.getElementById('google-api-key-input');
+            const statusEl = document.getElementById('api-key-verification-status');
+            if (!modal || !input) return;
+
+            input.value = state.apiKey || '';
+            input.type = 'password';
+            if (statusEl) statusEl.classList.add('hidden');
+            modal.classList.remove('hidden');
+            setTimeout(() => input.focus(), 80);
+        }
+
+        function closeSettingsModal() {
+            const modal = document.getElementById('settings-modal');
+            if (modal) modal.classList.add('hidden');
+        }
+
+        function toggleApiKeyVisibility() {
+            const input = document.getElementById('google-api-key-input');
+            const icon = document.getElementById('api-key-eye-icon');
+            if (!input) return;
+            const isPwd = input.type === 'password';
+            input.type = isPwd ? 'text' : 'password';
+            if (icon) {
+                icon.setAttribute('data-lucide', isPwd ? 'eye-off' : 'eye');
+                if (window.lucide) window.lucide.createIcons();
+            }
+        }
+
+        /**
+         * ============================================================================
+         * 4. FAST DIRECT GOOGLE GEMINI API CLIENT
+         * ============================================================================
+         */
+        async function callGeminiAPI(promptText, apiKeyOverride = null, expectJson = false) {
+            const key = (apiKeyOverride || state.apiKey || '').trim();
+            if (!key) throw new Error('Missing Google API Key');
+
+            const url = `https://generativelanguage.googleapis.com/v1beta/models/gemini-3-flash-preview:generateContent?key=${encodeURIComponent(key)}`;
+            const maxRetries = 2;
+            let delay = 500;
+
+            const generationConfig = {
+                temperature: 0.2,
+                thinkingConfig: { thinkingBudget: 0 }
+            };
+            if (expectJson) {
+                generationConfig.responseMimeType = 'application/json';
+            }
+
+            for (let attempt = 0; attempt <= maxRetries; attempt++) {
+                try {
+                    const res = await fetch(url, {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify({
+                            contents: [{ parts: [{ text: promptText }] }],
+                            generationConfig
+                        })
+                    });
+
+                    const data = await res.json();
+                    if (!res.ok) {
+                        const errMsg = data?.error?.message || `API Error (${res.status})`;
+                        if (res.status === 429 && attempt < maxRetries) {
+                            await new Promise(r => setTimeout(r, delay));
+                            delay *= 2;
+                            continue;
+                        }
+                        throw new Error(errMsg);
+                    }
+
+                    const text = data?.candidates?.[0]?.content?.parts?.[0]?.text;
+                    if (!text) throw new Error('Empty response received from Gemini API.');
+                    return text.trim();
+                } catch (err) {
+                    if (
+                        attempt === maxRetries ||
+                        (err.message && (err.message.includes('API key not valid') || err.message.includes('400') || err.message.includes('403')))
+                    ) {
+                        throw err;
+                    }
+                    await new Promise(r => setTimeout(r, delay));
+                    delay *= 2;
+                }
+            }
+        }
+
+        async function verifyAndSaveApiKey() {
+            const input = document.getElementById('google-api-key-input');
+            const btn = document.getElementById('verify-key-btn');
+            const statusEl = document.getElementById('api-key-verification-status');
+            if (!input || !btn || !statusEl) return;
+
+            const candidateKey = input.value.trim();
+            if (!candidateKey || candidateKey.length < 15) {
+                statusEl.className = 'mt-2 text-xs font-semibold text-rose-600';
+                statusEl.textContent = 'Please enter a valid Google Gemini API key (starts with AIza...).';
+                statusEl.classList.remove('hidden');
+                return;
+            }
+
+            btn.disabled = true;
+            btn.innerHTML = '<span>Connecting...</span>';
+            statusEl.className = 'mt-2 text-xs font-medium text-indigo-600';
+            statusEl.textContent = 'Verifying key with Google Gemini...';
+            statusEl.classList.remove('hidden');
+
+            try {
+                await callGeminiAPI('OK', candidateKey, false);
+                state.apiKey = candidateKey;
+                localStorage.setItem(API_KEY_STORAGE_KEY, candidateKey);
+
+                loadUserVaultForActiveKey();
+                updateApiKeyUIState();
+                populateLanguageSelects();
+                renderActiveStudio();
+                renderHistoryList();
+                setPlaybackRate(state.playbackRate);
+
+                statusEl.className = 'mt-2 text-xs font-semibold text-emerald-600';
+                statusEl.textContent = 'Connected! Your personal FREE PRO vault is active.';
+                showToast('Google API Key connected!', 'success');
+                setTimeout(() => closeSettingsModal(), 400);
+            } catch (err) {
+                statusEl.className = 'mt-2 text-xs font-semibold text-rose-600';
+                statusEl.textContent = `Connection failed: ${err.message}`;
+                showToast('Invalid Google API Key. Please check and try again.', 'error');
+            } finally {
+                btn.disabled = false;
+                btn.innerHTML = '<i data-lucide="check-circle-2" class="w-4 h-4"></i><span>Verify & Save Key</span>';
+                if (window.lucide) window.lucide.createIcons();
+            }
+        }
+
+        function removeGoogleApiKey() {
+            state.apiKey = '';
+            state.history = [];
+            localStorage.removeItem(API_KEY_STORAGE_KEY);
+            const input = document.getElementById('google-api-key-input');
+            if (input) input.value = '';
+            updateApiKeyUIState();
+            renderHistoryList();
+            closeSettingsModal();
+            showToast('API Key disconnected. First connect API key to use features.', 'info');
+        }
+
+        /**
+         * ============================================================================
+         * 5. LANGUAGE & TRANSLATION HANDLERS
+         * ============================================================================
+         */
+        function populateLanguageSelects() {
+            const nativeSel = document.getElementById('native-lang-select');
+            const targetSel = document.getElementById('target-lang-select');
+            if (!nativeSel || !targetSel) return;
+
+            nativeSel.innerHTML = LANGUAGES.map(l => `<option value="${l.code}">${l.flag} ${l.name}</option>`).join('');
+            targetSel.innerHTML = LANGUAGES.map(l => `<option value="${l.code}">${l.flag} ${l.name}</option>`).join('');
+
+            nativeSel.value = state.nativeLang;
+            targetSel.value = state.targetLang;
+        }
+
+        function handleLanguageChange() {
+            const nativeSel = document.getElementById('native-lang-select');
+            const targetSel = document.getElementById('target-lang-select');
+            if (nativeSel) state.nativeLang = nativeSel.value;
+            if (targetSel) state.targetLang = targetSel.value;
+            renderActiveStudio();
+            if (state.apiKey) saveUserVaultForActiveKey();
+        }
+
+        function swapLanguages() {
+            const temp = state.nativeLang;
+            state.nativeLang = state.targetLang;
+            state.targetLang = temp;
+            populateLanguageSelects();
+            renderActiveStudio();
+            if (state.apiKey) saveUserVaultForActiveKey();
+        }
+
+        function renderSamplePhrases() {
+            const container = document.getElementById('sample-pills-container');
+            if (!container) return;
+            const pillsHtml = SAMPLE_PHRASES.map((item, idx) => `
+                <button type="button" onclick="useSamplePhrase(${idx})" class="px-2.5 py-1 rounded-lg bg-slate-100 hover:bg-indigo-50 hover:text-indigo-700 text-slate-600 text-xs font-medium transition">
+                    ${item.label}
+                </button>
+            `).join('');
+            container.innerHTML = `<span class="text-[11px] font-semibold text-slate-400 mr-1">Try:</span>${pillsHtml}`;
+        }
+
+        function useSamplePhrase(index) {
+            if (!ensureApiKeyConfigured()) return;
+            const sample = SAMPLE_PHRASES[index];
+            if (!sample) return;
+            const input = document.getElementById('source-input');
+            if (input) input.value = sample.text;
+            handleTranslateAndLoad();
+        }
+
+        async function handleTranslateAndLoad() {
+            if (!ensureApiKeyConfigured()) return;
+
+            const inputEl = document.getElementById('source-input');
+            const rawText = inputEl ? inputEl.value.trim() : '';
+            if (!rawText) {
+                showToast('Please enter a word or phrase to translate.', 'info');
+                return;
+            }
+
+            const btn = document.getElementById('translate-btn');
+            const originalHTML = btn.innerHTML;
+            btn.disabled = true;
+            btn.innerHTML = '<span>Translating...</span>';
+
+            const nativeLangObj = LANGUAGES.find(l => l.code === state.nativeLang) || LANGUAGES[0];
+            const targetLangObj = LANGUAGES.find(l => l.code === state.targetLang) || LANGUAGES[1];
+
+            const prompt = `Translate "${rawText}" between ${nativeLangObj.name} and ${targetLangObj.name}. Return JSON with keys: "targetText" (in ${targetLangObj.name}), "nativeText" (in ${nativeLangObj.name}), "phonetic" (syllable guide in slashes), "tip" (1 short pronunciation tip under 12 words).`;
+
+            try {
+                const responseText = await callGeminiAPI(prompt, null, true);
+                const cleaned = responseText.replace(/```json|```/g, '').trim();
+                const parsed = JSON.parse(cleaned);
+
+                state.currentPhrase = {
+                    targetText: parsed.targetText || rawText,
+                    nativeText: parsed.nativeText || rawText,
+                    phonetic: parsed.phonetic || '',
+                    tip: parsed.tip || 'Focus on clear vowel sounds and steady pacing.',
+                    lang: state.targetLang
+                };
+
+                hideFeedbackPanel();
+                renderActiveStudio();
+                saveUserVaultForActiveKey();
+                showToast('Translation & phonetic guide ready!', 'success');
+            } catch (err) {
+                console.error(err);
+                showToast(`Translation error: ${err.message}`, 'error');
+            } finally {
+                btn.disabled = false;
+                btn.innerHTML = originalHTML;
+                if (window.lucide) window.lucide.createIcons();
+            }
+        }
+
+        function renderActiveStudio() {
+            const targetLangObj = LANGUAGES.find(l => l.code === state.targetLang) || LANGUAGES[1];
+            const badge = document.getElementById('studio-target-badge');
+            const targetEl = document.getElementById('studio-target-text');
+            const phoneticEl = document.getElementById('studio-phonetic-text');
+            const nativeEl = document.getElementById('studio-native-text');
+            const tipEl = document.getElementById('studio-tip-text');
+
+            if (badge) badge.textContent = `${targetLangObj.flag} ${targetLangObj.name}`;
+            if (targetEl) targetEl.textContent = state.currentPhrase.targetText;
+            if (phoneticEl) phoneticEl.textContent = state.currentPhrase.phonetic || '';
+            if (nativeEl) nativeEl.textContent = `"${state.currentPhrase.nativeText}"`;
+            if (tipEl) tipEl.textContent = state.currentPhrase.tip || 'Speak clearly at a steady pace.';
+        }
+
+        /**
+         * ============================================================================
+         * 6. AUDIO PLAYBACK (TTS) & SPEED CONTROL
+         * ============================================================================
+         */
+        function setPlaybackRate(rate) {
+            state.playbackRate = rate;
+            document.querySelectorAll('.rate-btn').forEach(btn => {
+                const btnRate = parseFloat(btn.getAttribute('data-rate'));
+                if (Math.abs(btnRate - rate) < 0.01) {
+                    btn.className = 'rate-btn px-2.5 py-1 rounded-lg bg-white text-indigo-700 shadow-xs transition';
+                } else {
+                    btn.className = 'rate-btn px-2.5 py-1 rounded-lg text-slate-600 transition';
+                }
+            });
+            if (state.apiKey) saveUserVaultForActiveKey();
+        }
+
+        function speakTargetPhrase() {
+            if (!ensureApiKeyConfigured()) return;
+
+            if (!('speechSynthesis' in window)) {
+                showToast('Speech synthesis is not supported in this browser.', 'error');
+                return;
+            }
+
+            window.speechSynthesis.cancel();
+            const utterance = new SpeechSynthesisUtterance(state.currentPhrase.targetText);
+            utterance.lang = state.targetLang;
+            utterance.rate = state.playbackRate;
+
+            const voices = window.speechSynthesis.getVoices();
+            const matchingVoice = voices.find(v => v.lang.toLowerCase().startsWith(state.targetLang.slice(0, 2).toLowerCase()));
+            if (matchingVoice) utterance.voice = matchingVoice;
+
+            const waveEl = document.getElementById('sound-wave');
+            utterance.onstart = () => waveEl && waveEl.classList.add('speaking');
+            utterance.onend = () => waveEl && waveEl.classList.remove('speaking');
+            utterance.onerror = () => waveEl && waveEl.classList.remove('speaking');
+
+            window.speechSynthesis.speak(utterance);
+        }
+
+        /**
+         * ============================================================================
+         * 7. SPEECH RECOGNITION & GEMINI PRONUNCIATION SCORING
+         * ============================================================================
+         */
+        function toggleRecording() {
+            if (!ensureApiKeyConfigured()) return;
+
+            const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
+            if (!SpeechRecognition) {
+                showToast('Speech recognition requires Chrome, Edge, or Safari.', 'error');
+                return;
+            }
+
+            if (state.isRecording && state.recognition) {
+                state.recognition.stop();
+                return;
+            }
+
+            const recognition = new SpeechRecognition();
+            recognition.lang = state.targetLang;
+            recognition.interimResults = false;
+            recognition.maxAlternatives = 1;
+            state.recognition = recognition;
+
+            const recordBtn = document.getElementById('record-btn');
+            const recordLabel = document.getElementById('record-btn-label');
+            const liveStatus = document.getElementById('recording-live-status');
+
+            recognition.onstart = () => {
+                state.isRecording = true;
+                if (recordBtn) {
+                    recordBtn.classList.remove('bg-indigo-600', 'hover:bg-indigo-700');
+                    recordBtn.classList.add('bg-rose-600', 'hover:bg-rose-700', 'recording-ring');
+                }
+                if (recordLabel) recordLabel.textContent = 'Stop Listening';
+                if (liveStatus) liveStatus.classList.remove('hidden');
+            };
+
+            recognition.onresult = async (event) => {
+                const spokenText = event.results?.[0]?.[0]?.transcript || '';
+                if (spokenText) {
+                    await evaluatePronunciation(spokenText);
+                }
+            };
+
+            recognition.onerror = (event) => {
+                if (event.error !== 'aborted') {
+                    showToast(`Microphone error: ${event.error}. Please allow mic access.`, 'error');
+                }
+            };
+
+            recognition.onend = () => {
+                state.isRecording = false;
+                if (recordBtn) {
+                    recordBtn.classList.add('bg-indigo-600', 'hover:bg-indigo-700');
+                    recordBtn.classList.remove('bg-rose-600', 'hover:bg-rose-700', 'recording-ring');
+                }
+                if (recordLabel) recordLabel.textContent = 'Practice Speaking';
+                if (liveStatus) liveStatus.classList.add('hidden');
+            };
+
+            recognition.start();
+        }
+
+        function normalizeWords(str) {
+            return str
+                .toLowerCase()
+                .replace(/[.,\/#!$%\^&\*;:{}=\-_`~()?¿¡"'’]/g, '')
+                .trim()
+                .split(/\s+/)
+                .filter(Boolean);
+        }
+
+        function hideFeedbackPanel() {
+            const panel = document.getElementById('feedback-panel');
+            if (panel) panel.classList.add('hidden');
+        }
+
+        async function evaluatePronunciation(spokenText) {
+            const expectedWords = normalizeWords(state.currentPhrase.targetText);
+            const spokenWords = normalizeWords(spokenText);
+
+            let matchedCount = 0;
+            const wordStatuses = expectedWords.map((word, idx) => {
+                const exact = spokenWords.includes(word);
+                const positionalClose = spokenWords[idx] && (spokenWords[idx].startsWith(word.slice(0, 2)) || word.startsWith(spokenWords[idx].slice(0, 2)));
+                if (exact) {
+                    matchedCount++;
+                    return { word, status: 'matched' };
+                } else if (positionalClose) {
+                    matchedCount += 0.5;
+                    return { word, status: 'close' };
+                }
+                return { word, status: 'missed' };
+            });
+
+            const score = expectedWords.length > 0
+                ? Math.min(100, Math.round((matchedCount / expectedWords.length) * 100))
+                : 0;
+
+            const panel = document.getElementById('feedback-panel');
+            const scoreVal = document.getElementById('feedback-score-value');
+            const scoreLbl = document.getElementById('feedback-score-label');
+            const transcriptEl = document.getElementById('feedback-transcript');
+            const wordsContainer = document.getElementById('feedback-words-container');
+            const adviceEl = document.getElementById('feedback-ai-advice');
+
+            if (scoreVal) {
+                scoreVal.textContent = `${score}%`;
+                scoreVal.className = score >= 80
+                    ? 'text-3xl font-extrabold text-emerald-600'
+                    : score >= 50
+                        ? 'text-3xl font-extrabold text-amber-600'
+                        : 'text-3xl font-extrabold text-rose-600';
+            }
+            if (scoreLbl) {
+                scoreLbl.textContent = score >= 80 ? 'Excellent!' : score >= 50 ? 'Good Effort' : 'Keep Practicing';
+                scoreLbl.className = score >= 80
+                    ? 'text-xs font-semibold px-2 py-0.5 rounded-full bg-emerald-50 text-emerald-700'
+                    : score >= 50
+                        ? 'text-xs font-semibold px-2 py-0.5 rounded-full bg-amber-50 text-amber-700'
+                        : 'text-xs font-semibold px-2 py-0.5 rounded-full bg-rose-50 text-rose-700';
+            }
+            if (transcriptEl) transcriptEl.textContent = `"${spokenText}"`;
+
+            if (wordsContainer) {
+                wordsContainer.innerHTML = wordStatuses.map(item => {
+                    const cls = item.status === 'matched'
+                        ? 'bg-emerald-50 text-emerald-800 border-emerald-200'
+                        : item.status === 'close'
+                            ? 'bg-amber-50 text-amber-800 border-amber-200'
+                            : 'bg-rose-50 text-rose-800 border-rose-200';
+                    return `<span class="px-3 py-1.5 rounded-xl border text-xs font-bold ${cls}">${item.word}</span>`;
+                }).join('');
+            }
+
+            if (adviceEl) adviceEl.textContent = 'Generating AI pronunciation feedback...';
+            if (panel) panel.classList.remove('hidden');
+
+            saveHistoryEntry(score);
+
+            try {
+                const coachPrompt = `Target phrase: "${state.currentPhrase.targetText}". Learner said: "${spokenText}". Accuracy: ${score}%. Give 1 brief encouraging pronunciation tip (max 20 words).`;
+                const feedback = await callGeminiAPI(coachPrompt, null, false);
+                if (adviceEl) adviceEl.textContent = feedback;
+            } catch (err) {
+                if (adviceEl) adviceEl.textContent = score >= 80
+                    ? 'Clear articulation and natural rhythm! Try practicing at 1.0x speed.'
+                    : 'Listen slowly at 0.65x speed and focus on each stressed syllable.';
+            }
+        }
+
+        /**
+         * ============================================================================
+         * 8. PER-API-KEY HISTORY / SAVED PHRASES VAULT
+         * ============================================================================
+         */
+        function saveCurrentPhraseManually() {
+            if (!ensureApiKeyConfigured()) return;
+            saveHistoryEntry(null);
+            showToast('Phrase saved to your API key vault!', 'success');
+        }
+
+        function saveHistoryEntry(score = null) {
+            if (!state.apiKey) return;
+            const existingIdx = state.history.findIndex(
+                h => h.targetText.toLowerCase() === state.currentPhrase.targetText.toLowerCase() && h.lang === state.targetLang
+            );
+
+            const entry = {
+                id: existingIdx >= 0 ? state.history[existingIdx].id : Date.now().toString(),
+                targetText: state.currentPhrase.targetText,
+                nativeText: state.currentPhrase.nativeText,
+                phonetic: state.currentPhrase.phonetic,
+                tip: state.currentPhrase.tip,
+                lang: state.targetLang,
+                bestScore: score !== null
+                    ? Math.max(score, existingIdx >= 0 && state.history[existingIdx].bestScore ? state.history[existingIdx].bestScore : 0)
+                    : (existingIdx >= 0 ? state.history[existingIdx].bestScore : null),
+                updatedAt: new Date().toLocaleDateString()
+            };
+
+            if (existingIdx >= 0) {
+                state.history.splice(existingIdx, 1);
+            }
+            state.history.unshift(entry);
+            if (state.history.length > 30) state.history.pop();
+
+            saveUserVaultForActiveKey();
+            renderHistoryList();
+        }
+
+        function loadFromHistory(id) {
+            if (!ensureApiKeyConfigured()) return;
+            const item = state.history.find(h => h.id === id);
+            if (!item) return;
+
+            state.targetLang = item.lang || state.targetLang;
+            state.currentPhrase = {
+                targetText: item.targetText,
+                nativeText: item.nativeText,
+                phonetic: item.phonetic || '',
+                tip: item.tip || 'Focus on clear articulation.',
+                lang: state.targetLang
+            };
+
+            populateLanguageSelects();
+            hideFeedbackPanel();
+            renderActiveStudio();
+            window.scrollTo({ top: 0, behavior: 'smooth' });
+        }
+
+        function deleteHistoryItem(id, event) {
+            if (event) event.stopPropagation();
+            if (!ensureApiKeyConfigured()) return;
+            state.history = state.history.filter(h => h.id !== id);
+            saveUserVaultForActiveKey();
+            renderHistoryList();
+        }
+
+        function clearHistoryPrompt() {
+            if (!ensureApiKeyConfigured()) return;
+            state.history = [];
+            saveUserVaultForActiveKey();
+            renderHistoryList();
+            showToast('Saved history cleared for this API key.', 'info');
+        }
+
+        function renderHistoryList() {
+            const listEl = document.getElementById('history-list');
+            const badgeEl = document.getElementById('history-count-badge');
+            if (!listEl || !badgeEl) return;
+
+            badgeEl.textContent = state.history.length;
+
+            if (!state.apiKey) {
+                listEl.innerHTML = `
+                    <div class="p-6 text-center rounded-2xl border border-dashed border-slate-200 bg-slate-50/70">
+                        <p class="text-xs font-semibold text-slate-600">API Key Not Connected</p>
+                        <p class="text-[11px] text-slate-400 mt-1">Connect your Google API Key in Settings to unlock and store your personal phrase history.</p>
+                        <button type="button" onclick="openSettingsModal()" class="mt-3 px-3.5 py-1.5 rounded-xl bg-indigo-600 text-white text-xs font-semibold hover:bg-indigo-700 transition">
+                            Connect API Key
+                        </button>
+                    </div>
+                `;
+                return;
+            }
+
+            if (state.history.length === 0) {
+                listEl.innerHTML = `
+                    <div class="p-6 text-center rounded-2xl border border-dashed border-slate-200 bg-slate-50/50">
+                        <p class="text-xs font-semibold text-slate-500">No saved phrases yet</p>
+                        <p class="text-[11px] text-slate-400 mt-1">Translate a phrase or complete a speaking check to save it to this API key's vault.</p>
+                    </div>
+                `;
+                return;
+            }
+
+            listEl.innerHTML = state.history.map(item => {
+                const langObj = LANGUAGES.find(l => l.code === item.lang) || { flag: '🌐', name: '' };
+                const scoreBadge = item.bestScore !== null && item.bestScore !== undefined
+                    ? `<span class="px-2 py-0.5 rounded-md text-[10px] font-bold bg-emerald-50 text-emerald-700">${item.bestScore}%</span>`
+                    : '';
+
+                return `
+                    <div onclick="loadFromHistory('${item.id}')" class="group p-3.5 rounded-2xl border border-slate-200/80 hover:border-indigo-300 bg-slate-50/40 hover:bg-indigo-50/40 cursor-pointer transition">
+                        <div class="flex items-start justify-between gap-2">
+                            <div class="min-w-0">
+                                <div class="flex items-center gap-1.5 mb-1">
+                                    <span class="text-xs">${langObj.flag}</span>
+                                    <span class="text-[10px] font-bold uppercase tracking-wider text-slate-400">${langObj.name}</span>
+                                    ${scoreBadge}
+                                </div>
+                                <p class="text-sm font-bold text-slate-900 truncate">${item.targetText}</p>
+                                <p class="text-xs text-slate-500 truncate mt-0.5">${item.nativeText}</p>
+                            </div>
+                            <button type="button" onclick="deleteHistoryItem('${item.id}', event)" title="Delete" class="p-1.5 rounded-lg text-slate-300 hover:text-rose-600 hover:bg-rose-50 transition">
+                                <i data-lucide="trash-2" class="w-3.5 h-3.5"></i>
+                            </button>
+                        </div>
+                    </div>
+                `;
+            }).join('');
+
+            if (window.lucide) window.lucide.createIcons();
+        }
+
+        /**
+         * ============================================================================
+         * 9. TOAST NOTIFICATIONS & APP BOOTSTRAP
+         * ============================================================================
+         */
+        function showToast(message, type = 'info') {
+            const container = document.getElementById('toast-container');
+            if (!container) return;
+
+            const colors = {
+                success: 'bg-emerald-900 text-white border-emerald-700',
+                error: 'bg-rose-900 text-white border-rose-700',
+                info: 'bg-slate-900 text-white border-slate-700'
+            };
+
+            const toast = document.createElement('div');
+            toast.className = `pointer-events-auto px-4 py-3 rounded-2xl border shadow-lg text-xs font-semibold flex items-center justify-between gap-3 transition-all duration-300 ${colors[type] || colors.info}`;
+            toast.innerHTML = `<span>${message}</span>`;
+
+            container.appendChild(toast);
+            setTimeout(() => {
+                toast.style.opacity = '0';
+                toast.style.transform = 'translateY(8px)';
+                setTimeout(() => toast.remove(), 250);
+            }, 3200);
+        }
+
+        /**
+         * ============================================================================
+         * 10. CHROME-EXTENSION STYLE FLOATING HIGHLIGHT TRANSLATOR (EN / HI / BN)
+         * ============================================================================
+         */
+        let selectionDebounceTimer = null;
+
+        function hideFloatingPopover() {
+            const popover = document.getElementById('floating-selection-popover');
+            if (popover) popover.classList.add('hidden');
+        }
+
+        function speakFloatingWord() {
+            if (!state.floatingWord || !('speechSynthesis' in window)) return;
+            window.speechSynthesis.cancel();
+            const utterance = new SpeechSynthesisUtterance(state.floatingWord);
+            utterance.rate = 0.9;
+            window.speechSynthesis.speak(utterance);
+        }
+
+        function loadFloatingWordIntoStudio() {
+            if (!ensureApiKeyConfigured()) return;
+            if (!state.floatingWord) return;
+            const input = document.getElementById('source-input');
+            if (input) input.value = state.floatingWord;
+            hideFloatingPopover();
+            window.scrollTo({ top: 0, behavior: 'smooth' });
+            handleTranslateAndLoad();
+        }
+
+        function positionFloatingPopover(rect) {
+            const popover = document.getElementById('floating-selection-popover');
+            if (!popover) return;
+
+            popover.classList.remove('hidden');
+            const popRect = popover.getBoundingClientRect();
+            const margin = 12;
+
+            let top = rect.bottom + 10;
+            if (top + popRect.height > window.innerHeight - margin) {
+                top = Math.max(margin, rect.top - popRect.height - 10);
+            }
+
+            let left = rect.left + (rect.width / 2) - (popRect.width / 2);
+            left = Math.max(margin, Math.min(left, window.innerWidth - popRect.width - margin));
+
+            popover.style.top = `${top}px`;
+            popover.style.left = `${left}px`;
+        }
+
+        async function triggerFloatingLookup(selectedText, rect) {
+            const cleanedWord = selectedText.trim();
+            if (!cleanedWord || cleanedWord.length > 80) return;
+
+            if (!ensureApiKeyConfigured()) {
+                window.getSelection()?.removeAllRanges();
+                return;
+            }
+
+            state.floatingWord = cleanedWord;
+
+            const wordEl = document.getElementById('float-selected-word');
+            const phoneticEl = document.getElementById('float-phonetic');
+            const enEl = document.getElementById('float-meaning-en');
+            const hiEl = document.getElementById('float-meaning-hi');
+            const bnEl = document.getElementById('float-meaning-bn');
+            const loadingEl = document.getElementById('float-loading-state');
+            const meaningsContainer = document.getElementById('float-meanings-container');
+
+            if (wordEl) wordEl.textContent = cleanedWord;
+            if (phoneticEl) phoneticEl.textContent = '';
+            positionFloatingPopover(rect);
+
+            const cacheKey = cleanedWord.toLowerCase();
+            if (state.floatingCache[cacheKey]) {
+                const cached = state.floatingCache[cacheKey];
+                if (phoneticEl) phoneticEl.textContent = cached.phonetic || '';
+                if (enEl) enEl.textContent = cached.english || '—';
+                if (hiEl) hiEl.textContent = cached.hindi || '—';
+                if (bnEl) bnEl.textContent = cached.bengali || '—';
+                if (loadingEl) loadingEl.classList.add('hidden');
+                if (meaningsContainer) meaningsContainer.classList.remove('hidden');
+                return;
+            }
+
+            if (loadingEl) loadingEl.classList.remove('hidden');
+            if (meaningsContainer) meaningsContainer.classList.add('hidden');
+
+            const prompt = `Give the concise dictionary meaning and translation of "${cleanedWord}" in English, Hindi, and Bengali. Return strict JSON with keys: "phonetic" (pronunciation guide), "english" (clear English meaning), "hindi" (Hindi meaning in Devanagari script), "bengali" (Bengali meaning in Bengali script).`;
+
+            try {
+                const rawRes = await callGeminiAPI(prompt, null, true);
+                const parsed = JSON.parse(rawRes.replace(/```json|```/g, '').trim());
+
+                const resultObj = {
+                    phonetic: parsed.phonetic || '',
+                    english: parsed.english || '—',
+                    hindi: parsed.hindi || '—',
+                    bengali: parsed.bengali || '—'
+                };
+                state.floatingCache[cacheKey] = resultObj;
+
+                if (state.floatingWord === cleanedWord) {
+                    if (phoneticEl) phoneticEl.textContent = resultObj.phonetic;
+                    if (enEl) enEl.textContent = resultObj.english;
+                    if (hiEl) hiEl.textContent = resultObj.hindi;
+                    if (bnEl) bnEl.textContent = resultObj.bengali;
+                    if (loadingEl) loadingEl.classList.add('hidden');
+                    if (meaningsContainer) meaningsContainer.classList.remove('hidden');
+                    positionFloatingPopover(rect);
+                }
+            } catch (err) {
+                if (loadingEl) loadingEl.classList.add('hidden');
+                if (meaningsContainer) meaningsContainer.classList.remove('hidden');
+                if (enEl) enEl.textContent = `Lookup error: ${err.message}`;
+            }
+        }
+
+        function handleTextSelectionEvent(event) {
+            const popover = document.getElementById('floating-selection-popover');
+            const settingsModal = document.getElementById('settings-modal');
+
+            // Ignore clicks inside the floating popover itself or inside the settings modal
+            if (popover && popover.contains(event.target)) return;
+            if (settingsModal && !settingsModal.classList.contains('hidden')) return;
+
+            clearTimeout(selectionDebounceTimer);
+            selectionDebounceTimer = setTimeout(() => {
+                const selection = window.getSelection();
+                if (!selection || selection.isCollapsed || selection.rangeCount === 0) {
+                    return;
+                }
+
+                const selectedText = selection.toString().trim();
+                if (!selectedText || selectedText.length < 1) return;
+
+                const range = selection.getRangeAt(0);
+                const rect = range.getBoundingClientRect();
+                if (!rect || (rect.width === 0 && rect.height === 0)) return;
+
+                triggerFloatingLookup(selectedText, rect);
+            }, 220);
+        }
+
+        document.addEventListener('mouseup', handleTextSelectionEvent);
+        document.addEventListener('touchend', handleTextSelectionEvent);
+        document.addEventListener('mousedown', (event) => {
+            const popover = document.getElementById('floating-selection-popover');
+            if (popover && !popover.classList.contains('hidden') && !popover.contains(event.target)) {
+                const selection = window.getSelection();
+                if (!selection || selection.isCollapsed) {
+                    hideFloatingPopover();
+                }
+            }
+        });
+
+        document.addEventListener('DOMContentLoaded', () => {
+            try {
+                if (state.apiKey) {
+                    loadUserVaultForActiveKey();
+                }
+                updateApiKeyUIState();
+                populateLanguageSelects();
+                renderSamplePhrases();
+                renderActiveStudio();
+                renderHistoryList();
+                setPlaybackRate(state.playbackRate);
+                if (window.lucide) window.lucide.createIcons();
+            } catch (err) {
+                console.error('Initialization error:', err);
+            }
+        });
+    </script>
+</body>
+</html>
